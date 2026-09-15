@@ -1,0 +1,30 @@
+husisha { msingi/ttf.swa }
+
+// Jaribio: pakia fonti halisi, thibitisha maadili ya msingi
+// (unitsPerEm, indexToLocFormat, numGlyphs) na glyph ID za herufi
+// kadhaa dhidi ya thamani ZILIZOTHIBITISHWA kwa mkono (kwa Python,
+// kwa uchunguzi wa moja kwa moja wa baiti za faili -- angalia ripoti
+// ya kikao hiki kwa maelezo). Thamani zinazotarajiwa: unitsPerEm=2048,
+// indexToLocFormat=1, numGlyphs=2620, A=36, O=50, L=47, B=37.
+n32 main() {
+    n32 ok = ttf_pakia("/usr/share/fonts/liberation/LiberationSans-Regular.ttf");
+    kama (ok == 0) { rudisha 1; }
+
+    kama (ttf_units_per_em != 2048) { rudisha 2; }
+    kama (ttf_index_to_loc_format != 1) { rudisha 3; }
+    kama (ttf_num_glyphs != 2620) { rudisha 4; }
+
+    n32 gid_a = ttf_pata_glyph_id(65);  // 'A'
+    kama (gid_a != 36) { rudisha 5; }
+
+    n32 gid_o = ttf_pata_glyph_id(79);  // 'O'
+    kama (gid_o != 50) { rudisha 6; }
+
+    n32 gid_l = ttf_pata_glyph_id(76);  // 'L'
+    kama (gid_l != 47) { rudisha 7; }
+
+    n32 gid_b = ttf_pata_glyph_id(66);  // 'B'
+    kama (gid_b != 37) { rudisha 8; }
+
+    rudisha 0;
+}

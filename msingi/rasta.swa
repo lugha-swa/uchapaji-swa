@@ -1,0 +1,286 @@
+husisha { msingi/maktaba/kumbukumbu.swa }
+
+// rasta.swa -- Kibadilishi cha muhtasari wa glyph (pointi za
+// on-curve/off-curve za TrueType) kuwa vipande vya mstari
+// vilivyonyooka (baada ya kusawazisha curves za Bezier za
+// quadratic), kisha kijazaji cha scanline kwa KANUNI YA "NONZERO
+// WINDING" (kanuni rasmi ya TrueType kwa kujaza -- muhimu hasa kwa
+// glyph zenye shimo la ndani, mfano 'O', 'A', 'B').
+
+// -------------------------------------------------------
+// Hatua 1: mkondo (contour) -> vipande vya mstari (line segments)
+// -------------------------------------------------------
+
+// Bafa ya kudumu ya vipande vya mstari (katika nafasi ya pikseli,
+// baada ya kusawazishwa) -- (x0,y0)-(x1,y1) kila kimoja.
+n32* seg_x0;
+n32* seg_y0;
+n32* seg_x1;
+n32* seg_y1;
+n32 seg_idadi;
+n32 SEG_UWEZO = 4096;
+
+W0 rasta_anzisha() {
+    seg_x0 = tenga(ukubwa(n32) * SEG_UWEZO);
+    seg_y0 = tenga(ukubwa(n32) * SEG_UWEZO);
+    seg_x1 = tenga(ukubwa(n32) * SEG_UWEZO);
+    seg_y1 = tenga(ukubwa(n32) * SEG_UWEZO);
+    seg_idadi = 0;
+}
+
+W0 ongeza_mstari(n32 x0, n32 y0, n32 x1, n32 y1) {
+    kama (seg_idadi >= SEG_UWEZO) { rudisha; }
+    // Mstari wa urefu sifuri (pointi mbili zinazofanana) hauongezi
+    // chochote kwenye winding -- ruka, kuepuka gharama isiyo na maana.
+    kama (x0 == x1 && y0 == y1) { rudisha; }
+    seg_x0[seg_idadi] = x0;
+    seg_y0[seg_idadi] = y0;
+    seg_x1[seg_idadi] = x1;
+    seg_y1[seg_idadi] = y1;
+    seg_idadi = seg_idadi + 1;
+}
+
+// Idadi ya vipande vidogo vya mstari kwa kila curve ya quadratic --
+// namba ndogo ya kudumu, ya kutosha kwa saizi za pikseli ndogo
+// (64-128px) tunazotumia -- usawazishaji unaobadilika (adaptive)
+// kulingana na "uwiano wa gorofa" (flatness) ni uboreshaji wa baadaye.
+n32 BEZIER_VIPANDE = 10;
+
+// Sawazisha curve MOJA ya quadratic Bezier (p0=mwanzo tayari
+// KWENYE mkondo, ctrl=kidhibiti, p1=mwisho KWENYE mkondo) kuwa
+// vipande vya mstari, ikiongeza kila kimoja kwenye bafa ya seg_*.
+// B(t) = (1-t)^2*p0 + 2*(1-t)*t*ctrl + t^2*p1
+W0 sawazisha_bezier(n32 x0, n32 y0, n32 cx, n32 cy, n32 x1, n32 y1) {
+    n32 px = x0;
+    n32 py = y0;
+    n32 i = 1;
+    wakati (i <= BEZIER_VIPANDE) {
+        n64 t_1000 = (i * 1000) / BEZIER_VIPANDE;  // t * 1000, namba kamili
+        n64 mt_1000 = 1000 - t_1000;
+        // (1-t)^2, 2*(1-t)*t, t^2 -- vyote *1,000,000 (hesabu ya nukta
+        // isiyo na sehemu, kwa usahihi wa kutosha kwa uchoraji wa fonti)
+        n64 a = mt_1000 * mt_1000;
+        n64 b = 2 * mt_1000 * t_1000;
+        n64 c = t_1000 * t_1000;
+        n64 qx = (a * x0) + (b * cx) + (c * x1);
+        n64 qy = (a * y0) + (b * cy) + (c * y1);
+        n32 nx = qx / 1000000;
+        n32 ny = qy / 1000000;
+        ongeza_mstari(px, py, nx, ny);
+        px = nx;
+        py = ny;
+        i = i + 1;
+    }
+}
+
+// Hesabu pointi ya "katikati iliyodokezwa" (implied on-curve
+// midpoint) kati ya pointi mbili za off-curve mfululizo -- kanuni
+// halisi ya TrueType kwa udhibiti wa Bezier unaofuatana bila pointi
+// ya kati iliyoainishwa wazi.
+n32 katikati_x;
+n32 katikati_y;
+W0 hesabu_katikati(n32 x0, n32 y0, n32 x1, n32 y1) {
+    katikati_x = (x0 + x1) / 2;
+    katikati_y = (y0 + y1) / 2;
+}
+
+// Badilisha mkondo MMOJA (pointi kutoka faharisi mwanzo_i hadi
+// mwisho_i, KWENYE bafa za xs/ys/kwenye ZINAZOTOLEWA TAYARI kwenye
+// nafasi ya PIKSELI -- ubadilishaji wa kiwango/scale unafanywa na
+// mwitaji KABLA ya kuita hii) kuwa vipande vya mstari, kufuata
+// kanuni ya TrueType: pointi mbili za off-curve mfululizo zina
+// pointi ya katikati iliyodokezwa kati yao.
+W0 mkondo_hadi_mistari(n32* xs, n32* ys, n8* kwenye, n32 mwanzo_i, n32 mwisho_i) {
+    n32 idadi = mwisho_i - mwanzo_i + 1;
+    kama (idadi < 2) { rudisha; }
+
+    // Tafuta pointi ya kuanzia iliyo KWENYE mkondo (on-curve).
+    n32 anzia_rel = 0 - 1;  // faharisi YA NDANI YA MKONDO (0..idadi-1)
+    n32 j = 0;
+    wakati (j < idadi) {
+        kama (kwenye[mwanzo_i + j] != 0) {
+            anzia_rel = j;
+            j = idadi;  // toka
+        }
+        j = j + 1;
+    }
+
+    n32 anza_x = 0;
+    n32 anza_y = 0;
+    n32 anza_rel_halisi = 0;
+    kama (anzia_rel >= 0) {
+        anza_x = xs[mwanzo_i + anzia_rel];
+        anza_y = ys[mwanzo_i + anzia_rel];
+        anza_rel_halisi = anzia_rel;
+    } sivyo {
+        // Pointi ZOTE ni off-curve (nadra, lakini halali) -- tumia
+        // katikati kati ya pointi ya kwanza na ya mwisho kama
+        // mwanzo, ukianzia kutembea kwenye pointi ya 0.
+        hesabu_katikati(xs[mwanzo_i], ys[mwanzo_i], xs[mwisho_i], ys[mwisho_i]);
+        anza_x = katikati_x;
+        anza_y = katikati_y;
+        anza_rel_halisi = 0 - 1;  // hakuna pointi "halisi" ya kuanzia -- tembea kutoka 0
+    }
+
+    n32 cur_x = anza_x;
+    n32 cur_y = anza_y;
+
+    // Tembea pointi idadi (mara), tukianzia MARA BAADA ya pointi ya
+    // kuanzia (au kutoka 0 kama mwanzo ulikuwa katikati iliyodokezwa).
+    n32 hatua = 0;
+    n32 k = anza_rel_halisi + 1;
+    wakati (hatua < idadi) {
+        n32 rel = k;
+        kama (rel >= idadi) { rel = rel - idadi; }
+        n32 px = xs[mwanzo_i + rel];
+        n32 py = ys[mwanzo_i + rel];
+        n32 ni_kwenye = kwenye[mwanzo_i + rel];
+
+        kama (ni_kwenye != 0) {
+            ongeza_mstari(cur_x, cur_y, px, py);
+            cur_x = px;
+            cur_y = py;
+            k = rel + 1;
+            hatua = hatua + 1;
+        } sivyo {
+            // Pointi ya off-curve -- angalia pointi INAYOFUATA.
+            n32 rel2 = rel + 1;
+            kama (rel2 >= idadi) { rel2 = rel2 - idadi; }
+            n32 nx = xs[mwanzo_i + rel2];
+            n32 ny = ys[mwanzo_i + rel2];
+            n32 nk = kwenye[mwanzo_i + rel2];
+
+            n32 lengo_x = 0;
+            n32 lengo_y = 0;
+            n32 ruka_pointi_2 = 0;
+            kama (nk != 0) {
+                lengo_x = nx;
+                lengo_y = ny;
+                ruka_pointi_2 = 1;
+            } sivyo {
+                hesabu_katikati(px, py, nx, ny);
+                lengo_x = katikati_x;
+                lengo_y = katikati_y;
+                ruka_pointi_2 = 0;
+            }
+
+            sawazisha_bezier(cur_x, cur_y, px, py, lengo_x, lengo_y);
+            cur_x = lengo_x;
+            cur_y = lengo_y;
+
+            kama (ruka_pointi_2 != 0) {
+                k = rel2 + 1;
+                hatua = hatua + 2;
+            } sivyo {
+                k = rel2;
+                hatua = hatua + 1;
+            }
+        }
+    }
+
+    // Funga mkondo: rudi kwenye pointi ya kuanzia.
+    ongeza_mstari(cur_x, cur_y, anza_x, anza_y);
+}
+
+// -------------------------------------------------------
+// Hatua 2: kujaza kwa scanline, kanuni ya NONZERO WINDING
+// -------------------------------------------------------
+
+// Jaza bafa ya pikseli (w*h, baiti 1 kwa kila pikseli: 0=nyeupe/
+// tupu, 255=nyeusi/wino) kwa kutumia vipande vya mstari vilivyoko
+// tayari kwenye seg_x0/seg_y0/seg_x1/seg_y1 (nafasi ya PIKSELI).
+// Kanuni ya NONZERO WINDING: kwa kila safu (row) ya pikseli, tafuta
+// makutano ya kila mstari na safu hiyo (kwa Y=row+0.5, katikati ya
+// pikseli, kuepuka utata wa makutano kwenye mpaka HASA), panga kwa
+// X, kisha songa kushoto-kwenda-kulia ukihesabu "winding" (+1 kama
+// mstari unaelekea juu, -1 kama chini) -- jaza kati ya X mbili
+// zenye winding isiyo sifuri KATI YAO.
+n32* makutano_x;
+n32* makutano_dir;
+n32 MAKUTANO_UWEZO = 256;
+
+W0 jaza_rasta(n8* pikseli, n32 w, n32 h) {
+    makutano_x = tenga(ukubwa(n32) * MAKUTANO_UWEZO);
+    makutano_dir = tenga(ukubwa(n32) * MAKUTANO_UWEZO);
+
+    n32 row = 0;
+    wakati (row < h) {
+        n32 y_katikati_x1000 = (row * 1000) + 500;  // (row+0.5)*1000
+
+        n32 idadi_makutano = 0;
+        n32 si = 0;
+        wakati (si < seg_idadi) {
+            n32 y0 = seg_y0[si];
+            n32 y1 = seg_y1[si];
+            n32 x0 = seg_x0[si];
+            n32 x1 = seg_x1[si];
+
+            n32 y0_1000 = y0 * 1000;
+            n32 y1_1000 = y1 * 1000;
+
+            n32 kata = 0;
+            n32 dir = 0;
+            kama (y0_1000 <= y_katikati_x1000 && y1_1000 > y_katikati_x1000) {
+                kata = 1;
+                dir = 1;  // juu
+            } sivyo { kama (y1_1000 <= y_katikati_x1000 && y0_1000 > y_katikati_x1000) {
+                    kata = 1;
+                    dir = 0 - 1;  // chini
+                } }
+
+            kama (kata != 0 && idadi_makutano < MAKUTANO_UWEZO) {
+                // Makutano ya X kwa uwiano wa mstari (interpolation
+                // ya mstari ulionyooka) -- hesabu ya N64 kuepuka
+                // kufurika.
+                n64 dy = y1_1000 - y0_1000;
+                kama (dy == 0) { dy = 1; }
+                n64 dx_jumla = x1 - x0;
+                n64 t_num = y_katikati_x1000 - y0_1000;
+                n64 x_1000 = (x0 * 1000) + ((dx_jumla * t_num * 1000) / dy);
+                n32 xr = x_1000 / 1000;
+                makutano_x[idadi_makutano] = xr;
+                makutano_dir[idadi_makutano] = dir;
+                idadi_makutano = idadi_makutano + 1;
+            }
+            si = si + 1;
+        }
+
+        // Panga makutano kwa X (uteuzi rahisi -- idadi ndogo kwa
+        // kila safu, hakuna haja ya algorithm ya haraka zaidi).
+        n32 a = 0;
+        wakati (a < idadi_makutano) {
+            n32 b = a + 1;
+            wakati (b < idadi_makutano) {
+                kama (makutano_x[b] < makutano_x[a]) {
+                    n32 tx = makutano_x[a]; makutano_x[a] = makutano_x[b]; makutano_x[b] = tx;
+                    n32 td = makutano_dir[a]; makutano_dir[a] = makutano_dir[b]; makutano_dir[b] = td;
+                }
+                b = b + 1;
+            }
+            a = a + 1;
+        }
+
+        // Songa kushoto-kwenda-kulia, ukihesabu winding, ukijaza
+        // pale winding si sifuri.
+        n32 winding = 0;
+        n32 mi = 0;
+        wakati (mi < idadi_makutano) {
+            n32 x_kutoka = makutano_x[mi];
+            winding = winding + makutano_dir[mi];
+            n32 x_hadi = w;
+            kama (mi + 1 < idadi_makutano) { x_hadi = makutano_x[mi + 1]; }
+            kama (winding != 0) {
+                n32 px = x_kutoka;
+                kama (px < 0) { px = 0; }
+                n32 mwisho_px = x_hadi;
+                kama (mwisho_px > w) { mwisho_px = w; }
+                wakati (px < mwisho_px) {
+                    pikseli[(row * w) + px] = 255;
+                    px = px + 1;
+                }
+            }
+            mi = mi + 1;
+        }
+        row = row + 1;
+    }
+}

@@ -1,0 +1,55 @@
+husisha { msingi/ttf.swa }
+
+// Jaribio: 'O' (gid 50) -- glyph yenye MIKONDO MIWILI (nje + shimo
+// la ndani) na pointi za OFF-CURVE (curves halisi za Bezier) --
+// jaribio kali zaidi kuliko 'L'. Thamani zote hapa chini
+// zimethibitishwa kwa mkono (Python, uchunguzi wa moja kwa moja wa
+// baiti za faili halisi) KABLA ya kuandika jaribio hili.
+n32 main() {
+    n32 ok = ttf_pakia("/usr/share/fonts/liberation/LiberationSans-Regular.ttf");
+    kama (ok == 0) { rudisha 1; }
+
+    n32 gid_o = ttf_pata_glyph_id(79);  // 'O'
+    kama (gid_o != 50) { rudisha 2; }
+
+    n32* xs = tenga(ukubwa(n32) * 512);
+    n32* ys = tenga(ukubwa(n32) * 512);
+    n8* kwenye = tenga(512);
+    n32* mwisho = tenga(ukubwa(n32) * 64);
+
+    n32 idadi = ttf_pata_muhtasari(gid_o, xs, ys, kwenye, mwisho);
+    kama (idadi != 27) { rudisha 3; }
+    kama (ttf_idadi_mikondo != 2) { rudisha 4; }
+    kama (mwisho[0] != 14) { rudisha 5; }
+    kama (mwisho[1] != 26) { rudisha 6; }
+
+    // Pointi 0: (1495,711) on-curve
+    kama (xs[0] != 1495 || ys[0] != 711) { rudisha 10; }
+    kama (kwenye[0] != 1) { rudisha 11; }
+
+    // Pointi 1,2: off-curve mfululizo (1495,490) (1326,158)
+    kama (xs[1] != 1495 || ys[1] != 490) { rudisha 12; }
+    kama (kwenye[1] != 0) { rudisha 13; }
+    kama (xs[2] != 1326 || ys[2] != 158) { rudisha 14; }
+    kama (kwenye[2] != 0) { rudisha 15; }
+
+    // Pointi 3: (1010,-20) off-curve -- Y HASI, jaribio la kudumu
+    // la ishara hasi kwenye delta-decode.
+    kama (xs[3] != 1010) { rudisha 16; }
+    kama (ys[3] != (0 - 20)) { rudisha 17; }
+    kama (kwenye[3] != 0) { rudisha 18; }
+
+    // Pointi 14: mwisho wa mkondo wa kwanza (1495,933) off-curve
+    kama (xs[14] != 1495 || ys[14] != 933) { rudisha 19; }
+    kama (kwenye[14] != 0) { rudisha 20; }
+
+    // Pointi 15: mwanzo wa mkondo wa pili (shimo) (1300,711) on-curve
+    kama (xs[15] != 1300 || ys[15] != 711) { rudisha 21; }
+    kama (kwenye[15] != 1) { rudisha 22; }
+
+    // Pointi 26: mwisho kabisa (1300,436) off-curve
+    kama (xs[26] != 1300 || ys[26] != 436) { rudisha 23; }
+    kama (kwenye[26] != 0) { rudisha 24; }
+
+    rudisha 0;
+}

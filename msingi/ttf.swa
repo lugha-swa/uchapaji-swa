@@ -1,0 +1,345 @@
+husisha { msingi/maktaba/kumbukumbu.swa }
+husisha { msingi/maktaba/faili.swa }
+
+// ttf.swa -- Msomaji wa faili za fonti za TrueType (.ttf), kwa Swa
+// safi, bila maktaba yoyote ya nje.
+//
+// TrueType ni umbizo la "big-endian" (baiti ya juu kwanza) -- KINYUME
+// na baiti_ghafi.swa ya Dominion (little-endian) -- hivyo kazi za
+// kusoma namba hapa chini ni MPYA, si nakala ya hiyo.
+
+// -------------------------------------------------------
+// Usomaji wa namba za big-endian kutoka bafa ya baiti
+// -------------------------------------------------------
+
+// Rudisha thamani ya baiti moja BILA ISHARA (0-255). n8 ni yenye
+// ishara kwenye Swa (-128..127) -- upanuzi wa moja kwa moja hadi n32
+// ungeeneza ishara (-1 badala ya 255). Rekebisho: ongeza 256 kama
+// hasi.
+n32 baiti_bila_ishara(n8* buf, n64 off) {
+    n32 b = buf[off];
+    kama (b < 0) { b = b + 256; }
+    rudisha b;
+}
+
+n64 soma_u16(n8* buf, n64 off) {
+    n64 hi = baiti_bila_ishara(buf, off);
+    n64 lo = baiti_bila_ishara(buf, off + 1);
+    rudisha (hi * 256) + lo;
+}
+
+n32 soma_i16(n8* buf, n64 off) {
+    n64 v = soma_u16(buf, off);
+    n32 vv = v;
+    kama (vv >= 32768) { vv = vv - 65536; }
+    rudisha vv;
+}
+
+n64 soma_u32(n8* buf, n64 off) {
+    n64 b0 = baiti_bila_ishara(buf, off);
+    n64 b1 = baiti_bila_ishara(buf, off + 1);
+    n64 b2 = baiti_bila_ishara(buf, off + 2);
+    n64 b3 = baiti_bila_ishara(buf, off + 3);
+    rudisha (b0 * 16777216) + (b1 * 65536) + (b2 * 256) + b3;
+}
+
+// Linganisha tagi ya jedwali (baiti 4, mfano "cmap") na mfuatano wa
+// moja kwa moja.
+n32 tagi_ni(n8* buf, n64 off, n8* tagi) {
+    kama (buf[off] != tagi[0]) { rudisha 0; }
+    kama (buf[off + 1] != tagi[1]) { rudisha 0; }
+    kama (buf[off + 2] != tagi[2]) { rudisha 0; }
+    kama (buf[off + 3] != tagi[3]) { rudisha 0; }
+    rudisha 1;
+}
+
+// -------------------------------------------------------
+// Hali ya fonti iliyopakiwa (fonti MOJA kwa wakati mmoja --
+// muundo rahisi wa kigezo cha ulimwengu, sawa na jinsi mkusanyaji
+// wa Swa mwenyewe unavyoshughulikia hali ya kimataifa ya kipande
+// kimoja cha kazi kwa wakati mmoja).
+// -------------------------------------------------------
+n8* ttf_data;
+n64 ttf_ukubwa;
+
+n64 ttf_off_head;
+n64 ttf_off_maxp;
+n64 ttf_off_cmap;
+n64 ttf_off_loca;
+n64 ttf_off_glyf;
+
+n32 ttf_units_per_em;
+n32 ttf_index_to_loc_format;
+n32 ttf_num_glyphs;
+
+// Ofseti KAMILI (si jamaa) ya jedwali-ndogo la cmap muundo 4
+// (platform 3, encoding 1 -- Windows Unicode BMP, muundo wa kawaida
+// kwa herufi za Kilatini, ambazo ndizo Kiswahili kinatumia).
+n64 ttf_cmap4_off;
+n32 ttf_cmap4_ipo;
+
+// Bafa ya kudumu ya bendera za pointi (flags), inatumika ndani ya
+// ttf_pata_muhtasari pekee -- imetengwa mara moja (si kila wito) ili
+// kuepuka gharama ya tenga() ya mara kwa mara.
+n8* bendera_bafa;
+n32 BENDERA_BAFA_UWEZO = 512;
+
+// Tafuta ofseti KAMILI ya jedwali lenye tagi husika kwenye
+// mwelekezo wa jedwali (table directory). Hurudisha -1 kama
+// halijapatikana.
+n64 tafuta_jedwali(n8* tagi) {
+    n32 idadi_jedwali = soma_u16(ttf_data, 4);
+    n32 i = 0;
+    wakati (i < idadi_jedwali) {
+        n64 rekodi_off = 12 + (i * 16);
+        kama (tagi_ni(ttf_data, rekodi_off, tagi)) {
+            rudisha soma_u32(ttf_data, rekodi_off + 8);
+        }
+        i = i + 1;
+    }
+    rudisha 0 - 1;
+}
+
+// Pakia faili la fonti kutoka njia iliyotolewa. Hurudisha 1 kwa
+// mafanikio, 0 kwa kushindwa (faili halipatikani, si TrueType
+// halisi, au haina jedwali muhimu).
+n32 ttf_pakia(n8* njia) {
+    n64 uwezo = 2000000;
+    ttf_data = tenga(uwezo);
+    kama (ttf_data == 0) { rudisha 0; }
+    n64 n = faili_soma_yote(njia, ttf_data, uwezo);
+    kama (n < 12) {
+        andika_stderr("ttf_pakia: haikuweza kusoma faili au ni fupi mno: %s\n", njia, 0, 0, 0, 0, 0);
+        rudisha 0;
+    }
+    ttf_ukubwa = n;
+
+    n64 toleo = soma_u32(ttf_data, 0);
+    kama (toleo != 65536) {
+        andika_stderr("ttf_pakia: si TrueType halisi (toleo si 0x00010000): %s\n", njia, 0, 0, 0, 0, 0);
+        rudisha 0;
+    }
+
+    ttf_off_head = tafuta_jedwali("head");
+    ttf_off_maxp = tafuta_jedwali("maxp");
+    ttf_off_cmap = tafuta_jedwali("cmap");
+    ttf_off_loca = tafuta_jedwali("loca");
+    ttf_off_glyf = tafuta_jedwali("glyf");
+
+    kama (ttf_off_head < 0 || ttf_off_maxp < 0 || ttf_off_cmap < 0 || ttf_off_loca < 0 || ttf_off_glyf < 0) {
+        andika_stderr("ttf_pakia: jedwali muhimu limekosekana (head/maxp/cmap/loca/glyf)\n", 0, 0, 0, 0, 0, 0);
+        rudisha 0;
+    }
+
+    ttf_units_per_em = soma_u16(ttf_data, ttf_off_head + 18);
+    ttf_index_to_loc_format = soma_i16(ttf_data, ttf_off_head + 50);
+    ttf_num_glyphs = soma_u16(ttf_data, ttf_off_maxp + 4);
+
+    // Tafuta jedwali-ndogo la cmap muundo 4 (platform 3 encoding 1,
+    // au platform 0 encoding 3 kama mbadala).
+    n32 idadi_cmap = soma_u16(ttf_data, ttf_off_cmap + 2);
+    ttf_cmap4_ipo = 0;
+    n32 ci = 0;
+    wakati (ci < idadi_cmap) {
+        n64 rekodi_off = ttf_off_cmap + 4 + (ci * 8);
+        n32 jukwaa = soma_u16(ttf_data, rekodi_off);
+        n32 usimbaji = soma_u16(ttf_data, rekodi_off + 2);
+        n64 ofseti_ndogo = soma_u32(ttf_data, rekodi_off + 4);
+        n64 sub_off = ttf_off_cmap + ofseti_ndogo;
+        n32 fomati = soma_u16(ttf_data, sub_off);
+        kama (fomati == 4) {
+            kama (jukwaa == 3 && usimbaji == 1) {
+                ttf_cmap4_off = sub_off;
+                ttf_cmap4_ipo = 1;
+            }
+            kama (ttf_cmap4_ipo == 0 && jukwaa == 0) {
+                ttf_cmap4_off = sub_off;
+                ttf_cmap4_ipo = 1;
+            }
+        }
+        ci = ci + 1;
+    }
+
+    kama (ttf_cmap4_ipo == 0) {
+        andika_stderr("ttf_pakia: hakuna jedwali-ndogo la cmap muundo 4 lililopatikana\n", 0, 0, 0, 0, 0, 0);
+        rudisha 0;
+    }
+
+    bendera_bafa = tenga(BENDERA_BAFA_UWEZO);
+
+    rudisha 1;
+}
+
+// Tafuta glyph ID kwa herufi (msimbo wa Unicode/ASCII) kupitia cmap
+// muundo 4. Hurudisha 0 (.notdef) kama haipatikani.
+n32 ttf_pata_glyph_id(n32 herufi) {
+    n64 sub = ttf_cmap4_off;
+    n32 segCountX2 = soma_u16(ttf_data, sub + 6);
+    n32 segCount = segCountX2 / 2;
+
+    n64 endCode_off = sub + 14;
+    n64 startCode_off = endCode_off + segCountX2 + 2;  // +2 kwa reservedPad
+    n64 idDelta_off = startCode_off + segCountX2;
+    n64 idRangeOffset_off = idDelta_off + segCountX2;
+
+    n32 i = 0;
+    wakati (i < segCount) {
+        n32 mwisho = soma_u16(ttf_data, endCode_off + (i * 2));
+        kama (mwisho >= herufi) {
+            n32 mwanzo = soma_u16(ttf_data, startCode_off + (i * 2));
+            kama (mwanzo > herufi) { rudisha 0; }
+            n32 delta = soma_i16(ttf_data, idDelta_off + (i * 2));
+            n32 rangeOff = soma_u16(ttf_data, idRangeOffset_off + (i * 2));
+            kama (rangeOff == 0) {
+                n32 gid = herufi + delta;
+                kama (gid < 0) { gid = gid + 65536; }
+                kama (gid >= 65536) { gid = gid - 65536; }
+                rudisha gid;
+            }
+            n64 anwani_ya_glyph = idRangeOffset_off + (i * 2) + rangeOff + ((herufi - mwanzo) * 2);
+            n32 gid = soma_u16(ttf_data, anwani_ya_glyph);
+            kama (gid == 0) { rudisha 0; }
+            gid = gid + delta;
+            kama (gid < 0) { gid = gid + 65536; }
+            kama (gid >= 65536) { gid = gid - 65536; }
+            rudisha gid;
+        }
+        i = i + 1;
+    }
+    rudisha 0;
+}
+
+// Ofseti ya loca kwa glyph_id.
+n64 ttf_loca_ingizo(n32 glyph_id) {
+    kama (ttf_index_to_loc_format == 1) {
+        rudisha soma_u32(ttf_data, ttf_off_loca + (glyph_id * 4));
+    }
+    rudisha soma_u16(ttf_data, ttf_off_loca + (glyph_id * 2)) * 2;
+}
+
+n32 ttf_ni_kiwanja(n32 glyph_id) {
+    n64 mwanzo = ttf_loca_ingizo(glyph_id);
+    n64 mwisho = ttf_loca_ingizo(glyph_id + 1);
+    kama (mwisho <= mwanzo) { rudisha 0; }  // glyph tupu (mfano nafasi)
+    n64 off = ttf_off_glyf + mwanzo;
+    n32 idadi_mikondo = soma_i16(ttf_data, off);
+    kama (idadi_mikondo < 0) { rudisha 1; }
+    rudisha 0;
+}
+
+// -------------------------------------------------------
+// Muhtasari wa glyph "rahisi" (simple glyph) -- hutoa pointi za
+// mikondo (contours) kupitia bafa zilizotengwa na mwitaji. Kikomo:
+// hakishughulikii glyph za "kiwanja" (composite) -- angalia
+// ttf_ni_kiwanja kabla ya kuita hii.
+//
+// Bafa za matokeo (zilizotengwa na mwitaji, uwezo angalau
+// KIKOMO_POINTI/KIKOMO_MIKONDO):
+//   out_xs, out_ys       -- kuratibu za pointi (baada ya delta-decode)
+//   out_kwenye_mkondo    -- 1 = pointi iko KWENYE mkondo (on-curve),
+//                           0 = ni kidhibiti cha Bezier (off-curve)
+//   out_mwisho_mikondo   -- faharisi ya mwisho (endPt) ya kila mkondo
+//
+// Idadi ya mikondo huwekwa kwenye kigezo cha ulimwengu
+// ttf_idadi_mikondo (badala ya paramu ya 6) -- tahadhari ya kuzuia
+// vigezo vingi, iliyofuatwa mradi mzima kikao hiki.
+n32 ttf_idadi_mikondo;
+
+n32 ttf_pata_muhtasari(n32 glyph_id, n32* out_xs, n32* out_ys, n8* out_kwenye_mkondo, n32* out_mwisho_mikondo) {
+    ttf_idadi_mikondo = 0;
+    n64 mwanzo = ttf_loca_ingizo(glyph_id);
+    n64 mwisho = ttf_loca_ingizo(glyph_id + 1);
+    kama (mwisho <= mwanzo) { rudisha 0; }  // glyph tupu
+
+    n64 off = ttf_off_glyf + mwanzo;
+    n32 idadi_mikondo = soma_i16(ttf_data, off);
+    kama (idadi_mikondo <= 0) { rudisha 0; }  // kiwanja au batili -- si wigo wa toleo hili
+    ttf_idadi_mikondo = idadi_mikondo;
+
+    n64 p = off + 10;  // ruka numberOfContours + bbox (n16 x 4)
+    n32 ci = 0;
+    wakati (ci < idadi_mikondo) {
+        out_mwisho_mikondo[ci] = soma_u16(ttf_data, p);
+        p = p + 2;
+        ci = ci + 1;
+    }
+    n32 idadi_pointi = out_mwisho_mikondo[idadi_mikondo - 1] + 1;
+    kama (idadi_pointi >= BENDERA_BAFA_UWEZO) {
+        andika_stderr("ttf_pata_muhtasari: glyph ina pointi nyingi mno kwa bafa ya sasa\n", 0, 0, 0, 0, 0, 0);
+        rudisha 0;
+    }
+
+    n32 urefu_maelekezo = soma_u16(ttf_data, p);
+    p = p + 2 + urefu_maelekezo;
+
+    // Soma bendera (flags) MARA MOJA, kwenye bafa ya kudumu
+    // bendera_bafa, zikiheshimu REPEAT_FLAG (biti 0x08).
+    n32 pi = 0;
+    wakati (pi < idadi_pointi) {
+        n32 bendera = baiti_bila_ishara(ttf_data, p);
+        p = p + 1;
+        bendera_bafa[pi] = bendera;
+        out_kwenye_mkondo[pi] = bendera & 1;
+        pi = pi + 1;
+        kama ((bendera & 8) != 0) {
+            n32 idadi_rudia = baiti_bila_ishara(ttf_data, p);
+            p = p + 1;
+            n32 ri = 0;
+            wakati (ri < idadi_rudia && pi < idadi_pointi) {
+                bendera_bafa[pi] = bendera;
+                out_kwenye_mkondo[pi] = bendera & 1;
+                pi = pi + 1;
+                ri = ri + 1;
+            }
+        }
+    }
+
+    // Delta-decode X.
+    n32 x = 0;
+    pi = 0;
+    wakati (pi < idadi_pointi) {
+        n32 bendera = bendera_bafa[pi];
+        n32 dx = 0;
+        kama ((bendera & 2) != 0) {
+            dx = baiti_bila_ishara(ttf_data, p);
+            p = p + 1;
+            kama ((bendera & 16) == 0) { dx = 0 - dx; }
+        } sivyo {
+            kama ((bendera & 16) != 0) {
+                dx = 0;
+            } sivyo {
+                dx = soma_i16(ttf_data, p);
+                p = p + 2;
+            }
+        }
+        x = x + dx;
+        out_xs[pi] = x;
+        pi = pi + 1;
+    }
+
+    // Delta-decode Y (bendera_bafa bado ina bendera safi -- hazikuguswa
+    // na pitio la X).
+    n32 y = 0;
+    pi = 0;
+    wakati (pi < idadi_pointi) {
+        n32 bendera = bendera_bafa[pi];
+        n32 dy = 0;
+        kama ((bendera & 4) != 0) {
+            dy = baiti_bila_ishara(ttf_data, p);
+            p = p + 1;
+            kama ((bendera & 32) == 0) { dy = 0 - dy; }
+        } sivyo {
+            kama ((bendera & 32) != 0) {
+                dy = 0;
+            } sivyo {
+                dy = soma_i16(ttf_data, p);
+                p = p + 2;
+            }
+        }
+        y = y + dy;
+        out_ys[pi] = y;
+        pi = pi + 1;
+    }
+
+    rudisha idadi_pointi;
+}

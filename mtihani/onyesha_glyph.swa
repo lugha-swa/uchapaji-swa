@@ -1,0 +1,174 @@
+husisha { msingi/ttf.swa }
+husisha { msingi/rasta.swa }
+
+// onyesha_glyph.swa -- pakia fonti halisi, chagua glyph kwa msimbo
+// wa herufi uliotolewa kwenye mstari wa amri, kisha uichore kuwa
+// PGM (Portable GrayMap) inayoweza kutazamwa (baada ya kubadilishwa
+// kuwa PNG na `convert`/`pnmtopng` -- zana za kuthibitisha tu, si
+// utegemezi wa Swa yenyewe).
+
+n32 CANVAS = 100;
+n32 UKINGO = 6;
+
+n32* g_xs;
+n32* g_ys;
+n8* g_kwenye;
+n32* g_mwisho;
+
+// Andika namba kamili (isiyo hasi) kama tarakimu za ASCII kwenye
+// bafa, kuanzia ofseti iliyotolewa. Hurudisha ofseti mpya.
+n32 andika_namba(n8* buf, n32 off, n32 n) {
+    kama (n == 0) {
+        buf[off] = 48;
+        rudisha off + 1;
+    }
+    n8 tmp[16];
+    n32 ti = 0;
+    n32 v = n;
+    wakati (v > 0) {
+        tmp[ti] = 48 + (v - ((v / 10) * 10));
+        v = v / 10;
+        ti = ti + 1;
+    }
+    n32 o = off;
+    n32 i = ti - 1;
+    wakati (i >= 0) {
+        buf[o] = tmp[i];
+        o = o + 1;
+        i = i - 1;
+    }
+    rudisha o;
+}
+
+n32 main(n32 argc, n8** argv) {
+    kama (argc < 3) {
+        andika_stderr("matumizi: onyesha_glyph <msimbo-wa-herufi> <njia-ya-pgm>\n", 0, 0, 0, 0, 0, 0);
+        rudisha 1;
+    }
+
+    n32 herufi = 0;
+    n8* argv1 = argv[1];
+    n32 hi = 0;
+    wakati (argv1[hi] != 0) {
+        herufi = (herufi * 10) + (argv1[hi] - 48);
+        hi = hi + 1;
+    }
+    n8* njia_pgm = argv[2];
+
+    n32 ok = ttf_pakia("/usr/share/fonts/liberation/LiberationSans-Regular.ttf");
+    kama (ok == 0) { rudisha 2; }
+
+    n32 gid = ttf_pata_glyph_id(herufi);
+    kama (gid == 0) {
+        andika_stderr("herufi haikupatikana kwenye cmap\n", 0, 0, 0, 0, 0, 0);
+        rudisha 3;
+    }
+    kama (ttf_ni_kiwanja(gid) != 0) {
+        andika_stderr("glyph ni ya KIWANJA (composite) -- nje ya wigo wa toleo hili\n", 0, 0, 0, 0, 0, 0);
+        rudisha 4;
+    }
+
+    g_xs = tenga(ukubwa(n32) * 512);
+    g_ys = tenga(ukubwa(n32) * 512);
+    g_kwenye = tenga(512);
+    g_mwisho = tenga(ukubwa(n32) * 64);
+
+    n32 idadi = ttf_pata_muhtasari(gid, g_xs, g_ys, g_kwenye, g_mwisho);
+    kama (idadi == 0) {
+        andika_stderr("glyph haina muhtasari (labda ni nafasi/tupu)\n", 0, 0, 0, 0, 0, 0);
+        rudisha 5;
+    }
+
+    // Bondi (bounding box) ya glyph HII HASA -- si em square nzima --
+    // ili kuhakikisha inaonekana vizuri bila kujali uwiano wake.
+    n32 min_x = g_xs[0];
+    n32 max_x = g_xs[0];
+    n32 min_y = g_ys[0];
+    n32 max_y = g_ys[0];
+    n32 i = 1;
+    wakati (i < idadi) {
+        kama (g_xs[i] < min_x) { min_x = g_xs[i]; }
+        kama (g_xs[i] > max_x) { max_x = g_xs[i]; }
+        kama (g_ys[i] < min_y) { min_y = g_ys[i]; }
+        kama (g_ys[i] > max_y) { max_y = g_ys[i]; }
+        i = i + 1;
+    }
+
+    n32 upana_f = max_x - min_x;
+    n32 kimo_f = max_y - min_y;
+    n32 kubwa_zaidi = upana_f;
+    kama (kimo_f > kubwa_zaidi) { kubwa_zaidi = kimo_f; }
+    kama (kubwa_zaidi == 0) { kubwa_zaidi = 1; }
+
+    n32 nafasi_inayopatikana = CANVAS - (2 * UKINGO);
+
+    // Badilisha pointi kwenda nafasi ya PIKSELI (kiwango + kupindua
+    // Y -- Y ya fonti huongezeka JUU, Y ya picha huongezeka CHINI).
+    n32* px = tenga(ukubwa(n32) * idadi);
+    n32* py = tenga(ukubwa(n32) * idadi);
+    i = 0;
+    wakati (i < idadi) {
+        n64 dx = g_xs[i] - min_x;
+        n64 sx = (dx * nafasi_inayopatikana) / kubwa_zaidi;
+        n32 xi = UKINGO + sx;
+
+        n64 dy = g_ys[i] - min_y;
+        n64 sy = (dy * nafasi_inayopatikana) / kubwa_zaidi;
+        n32 yi = CANVAS - UKINGO - sy;
+
+        px[i] = xi;
+        py[i] = yi;
+        i = i + 1;
+    }
+
+    rasta_anzisha();
+    n32 mwanzo_i = 0;
+    n32 ci = 0;
+    wakati (ci < ttf_idadi_mikondo) {
+        n32 mwisho_i = g_mwisho[ci];
+        mkondo_hadi_mistari(px, py, g_kwenye, mwanzo_i, mwisho_i);
+        mwanzo_i = mwisho_i + 1;
+        ci = ci + 1;
+    }
+
+    n8* pikseli = tenga(CANVAS * CANVAS);
+    i = 0;
+    wakati (i < CANVAS * CANVAS) {
+        pikseli[i] = 0;
+        i = i + 1;
+    }
+    jaza_rasta(pikseli, CANVAS, CANVAS);
+
+    // Jenga faili la PGM (P5, binary): "P5\n<w> <h>\n255\n" kisha
+    // baiti ghafi za pikseli.
+    n8* buf = tenga((CANVAS * CANVAS) + 64);
+    n32 o = 0;
+    buf[o] = 80; o = o + 1;   // 'P'
+    buf[o] = 53; o = o + 1;   // '5'
+    buf[o] = 10; o = o + 1;   // '\n'
+    o = andika_namba(buf, o, CANVAS);
+    buf[o] = 32; o = o + 1;   // ' '
+    o = andika_namba(buf, o, CANVAS);
+    buf[o] = 10; o = o + 1;   // '\n'
+    buf[o] = 50; o = o + 1;   // '2'
+    buf[o] = 53; o = o + 1;   // '5'
+    buf[o] = 53; o = o + 1;   // '5'
+    buf[o] = 10; o = o + 1;   // '\n'
+
+    n32 hdr_len = o;
+    i = 0;
+    wakati (i < CANVAS * CANVAS) {
+        buf[hdr_len + i] = pikseli[i];
+        i = i + 1;
+    }
+
+    n32 jumla = hdr_len + (CANVAS * CANVAS);
+    n32 res = faili_andika_yote(njia_pgm, buf, jumla);
+    kama (res != 0) {
+        andika_stderr("imeshindwa kuandika PGM\n", 0, 0, 0, 0, 0, 0);
+        rudisha 6;
+    }
+
+    andika("gid=%d pointi=%d mikondo=%d vipande_vya_mstari=%d\n", gid, idadi, ttf_idadi_mikondo, seg_idadi, 0, 0);
+    rudisha 0;
+}

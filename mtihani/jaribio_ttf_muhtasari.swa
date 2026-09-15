@@ -1,0 +1,40 @@
+husisha { msingi/ttf.swa }
+
+// Jaribio: thibitisha muhtasari (contour) wa glyph 'L' (gid 47)
+// dhidi ya pointi ZILIZOTHIBITISHWA kwa mkono (Python, uchunguzi wa
+// moja kwa moja wa baiti): mkondo 1, pointi 6, ZOTE kwenye mkondo
+// (hakuna udhibiti wa Bezier -- 'L' ina mistari iliyonyooka tu):
+// (168,0) (168,1409) (359,1409) (359,156) (1071,156) (1071,0).
+n32 main() {
+    n32 ok = ttf_pakia("/usr/share/fonts/liberation/LiberationSans-Regular.ttf");
+    kama (ok == 0) { rudisha 1; }
+
+    n32 gid_l = ttf_pata_glyph_id(76);  // 'L'
+    kama (gid_l != 47) { rudisha 2; }
+    kama (ttf_ni_kiwanja(gid_l) != 0) { rudisha 3; }
+
+    n32* xs = tenga(ukubwa(n32) * 512);
+    n32* ys = tenga(ukubwa(n32) * 512);
+    n8* kwenye = tenga(512);
+    n32* mwisho = tenga(ukubwa(n32) * 64);
+
+    n32 idadi = ttf_pata_muhtasari(gid_l, xs, ys, kwenye, mwisho);
+    kama (idadi != 6) { rudisha 4; }
+    kama (ttf_idadi_mikondo != 1) { rudisha 5; }
+    kama (mwisho[0] != 5) { rudisha 6; }
+
+    kama (xs[0] != 168 || ys[0] != 0) { rudisha 10; }
+    kama (xs[1] != 168 || ys[1] != 1409) { rudisha 11; }
+    kama (xs[2] != 359 || ys[2] != 1409) { rudisha 12; }
+    kama (xs[3] != 359 || ys[3] != 156) { rudisha 13; }
+    kama (xs[4] != 1071 || ys[4] != 156) { rudisha 14; }
+    kama (xs[5] != 1071 || ys[5] != 0) { rudisha 15; }
+
+    n32 i = 0;
+    wakati (i < 6) {
+        kama (kwenye[i] != 1) { rudisha 20; }
+        i = i + 1;
+    }
+
+    rudisha 0;
+}
