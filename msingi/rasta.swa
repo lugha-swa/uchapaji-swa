@@ -20,7 +20,7 @@ n32* seg_y1;
 n32 seg_idadi;
 n32 SEG_UWEZO = 4096;
 
-W0 rasta_anzisha() {
+w0 rasta_anzisha() {
     seg_x0 = tenga(ukubwa(n32) * SEG_UWEZO);
     seg_y0 = tenga(ukubwa(n32) * SEG_UWEZO);
     seg_x1 = tenga(ukubwa(n32) * SEG_UWEZO);
@@ -28,7 +28,7 @@ W0 rasta_anzisha() {
     seg_idadi = 0;
 }
 
-W0 ongeza_mstari(n32 x0, n32 y0, n32 x1, n32 y1) {
+w0 ongeza_mstari(n32 x0, n32 y0, n32 x1, n32 y1) {
     kama (seg_idadi >= SEG_UWEZO) { rudisha; }
     // Mstari wa urefu sifuri (pointi mbili zinazofanana) hauongezi
     // chochote kwenye winding -- ruka, kuepuka gharama isiyo na maana.
@@ -50,7 +50,7 @@ n32 BEZIER_VIPANDE = 10;
 // KWENYE mkondo, ctrl=kidhibiti, p1=mwisho KWENYE mkondo) kuwa
 // vipande vya mstari, ikiongeza kila kimoja kwenye bafa ya seg_*.
 // B(t) = (1-t)^2*p0 + 2*(1-t)*t*ctrl + t^2*p1
-W0 sawazisha_bezier(n32 x0, n32 y0, n32 cx, n32 cy, n32 x1, n32 y1) {
+w0 sawazisha_bezier(n32 x0, n32 y0, n32 cx, n32 cy, n32 x1, n32 y1) {
     n32 px = x0;
     n32 py = y0;
     n32 i = 1;
@@ -79,7 +79,7 @@ W0 sawazisha_bezier(n32 x0, n32 y0, n32 cx, n32 cy, n32 x1, n32 y1) {
 // ya kati iliyoainishwa wazi.
 n32 katikati_x;
 n32 katikati_y;
-W0 hesabu_katikati(n32 x0, n32 y0, n32 x1, n32 y1) {
+w0 hesabu_katikati(n32 x0, n32 y0, n32 x1, n32 y1) {
     katikati_x = (x0 + x1) / 2;
     katikati_y = (y0 + y1) / 2;
 }
@@ -90,7 +90,7 @@ W0 hesabu_katikati(n32 x0, n32 y0, n32 x1, n32 y1) {
 // mwitaji KABLA ya kuita hii) kuwa vipande vya mstari, kufuata
 // kanuni ya TrueType: pointi mbili za off-curve mfululizo zina
 // pointi ya katikati iliyodokezwa kati yao.
-W0 mkondo_hadi_mistari(n32* xs, n32* ys, n8* kwenye, n32 mwanzo_i, n32 mwisho_i) {
+w0 mkondo_hadi_mistari(n32* xs, n32* ys, n8* kwenye, n32 mwanzo_i, n32 mwisho_i) {
     n32 idadi = mwisho_i - mwanzo_i + 1;
     kama (idadi < 2) { rudisha; }
 
@@ -199,7 +199,7 @@ n32* makutano_x;
 n32* makutano_dir;
 n32 MAKUTANO_UWEZO = 256;
 
-W0 jaza_rasta(n8* pikseli, n32 w, n32 h) {
+w0 jaza_rasta(n8* pikseli, n32 w, n32 h) {
     makutano_x = tenga(ukubwa(n32) * MAKUTANO_UWEZO);
     makutano_dir = tenga(ukubwa(n32) * MAKUTANO_UWEZO);
 
@@ -230,7 +230,7 @@ W0 jaza_rasta(n8* pikseli, n32 w, n32 h) {
 
             kama (kata != 0 && idadi_makutano < MAKUTANO_UWEZO) {
                 // Makutano ya X kwa uwiano wa mstari (interpolation
-                // ya mstari ulionyooka) -- hesabu ya N64 kuepuka
+                // ya mstari ulionyooka) -- hesabu ya n64 kuepuka
                 // kufurika.
                 n64 dy = y1_1000 - y0_1000;
                 kama (dy == 0) { dy = 1; }
