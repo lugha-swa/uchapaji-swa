@@ -14,6 +14,7 @@
 
 <a href="https://github.com/lugha-swa/swa"><img src="https://img.shields.io/badge/imeandikwa_kwa-Swa-A34E14" alt="Imeandikwa kwa Swa"></a>
 <img src="https://img.shields.io/badge/tegemezi_za_nje-hakuna-6B5E4A" alt="Hakuna tegemezi za nje">
+<a href="#leseni"><img src="https://img.shields.io/badge/leseni-MIT%20%2F%20Apache--2.0-6B5E4A" alt="Leseni"></a>
 
 </div>
 <br>
@@ -87,6 +88,10 @@ Imethibitishwa dhidi ya fonti halisi (`/usr/share/fonts/liberation/LiberationSan
 | [lugha-swa/uchapaji-swa](https://github.com/lugha-swa/uchapaji-swa) | msomaji wa TrueType na kijazaji cha glyph — hazina hii |
 | [lugha-swa/tree-sitter-swa](https://github.com/lugha-swa/tree-sitter-swa) | sarufi ya Tree-sitter — rangi za sintaksia kwenye vihariri |
 | [lugha-swa.github.io](https://github.com/lugha-swa/lugha-swa.github.io) | tovuti na mwongozo wa lugha |
+
+## Leseni
+
+Kwa chaguo lako, [Apache 2.0](LICENSE-APACHE) au [MIT](LICENSE-MIT).
 
 <br>
 <div align="center">
