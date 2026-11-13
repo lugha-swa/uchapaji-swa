@@ -40,9 +40,9 @@ n32 andika_namba(n8* buf, n32 off, n32 n) {
     rudisha o;
 }
 
-n32 main(n32 argc, n8** argv) {
+n32 anza(n32 argc, n8** argv) {
     kama (argc < 3) {
-        andika_stderr("matumizi: onyesha_glyph <msimbo-wa-herufi> <njia-ya-pgm>\n", 0, 0, 0, 0, 0, 0);
+        andika_kosa("matumizi: onyesha_glyph <msimbo-wa-herufi> <njia-ya-pgm>\n", 0, 0, 0, 0, 0, 0);
         rudisha 1;
     }
 
@@ -60,11 +60,11 @@ n32 main(n32 argc, n8** argv) {
 
     n32 gid = ttf_pata_glyph_id(herufi);
     kama (gid == 0) {
-        andika_stderr("herufi haikupatikana kwenye cmap\n", 0, 0, 0, 0, 0, 0);
+        andika_kosa("herufi haikupatikana kwenye cmap\n", 0, 0, 0, 0, 0, 0);
         rudisha 3;
     }
     kama (ttf_ni_kiwanja(gid) != 0) {
-        andika_stderr("glyph ni ya KIWANJA (composite) -- nje ya wigo wa toleo hili\n", 0, 0, 0, 0, 0, 0);
+        andika_kosa("glyph ni ya KIWANJA (composite) -- nje ya wigo wa toleo hili\n", 0, 0, 0, 0, 0, 0);
         rudisha 4;
     }
 
@@ -75,7 +75,7 @@ n32 main(n32 argc, n8** argv) {
 
     n32 idadi = ttf_pata_muhtasari(gid, g_xs, g_ys, g_kwenye, g_mwisho);
     kama (idadi == 0) {
-        andika_stderr("glyph haina muhtasari (labda ni nafasi/tupu)\n", 0, 0, 0, 0, 0, 0);
+        andika_kosa("glyph haina muhtasari (labda ni nafasi/tupu)\n", 0, 0, 0, 0, 0, 0);
         rudisha 5;
     }
 
@@ -165,7 +165,7 @@ n32 main(n32 argc, n8** argv) {
     n32 jumla = hdr_len + (CANVAS * CANVAS);
     n32 res = faili_andika_yote(njia_pgm, buf, jumla);
     kama (res != 0) {
-        andika_stderr("imeshindwa kuandika PGM\n", 0, 0, 0, 0, 0, 0);
+        andika_kosa("imeshindwa kuandika PGM\n", 0, 0, 0, 0, 0, 0);
         rudisha 6;
     }
 

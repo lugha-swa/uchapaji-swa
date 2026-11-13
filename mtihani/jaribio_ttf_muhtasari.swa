@@ -5,7 +5,7 @@ husisha { msingi/ttf.swa }
 // moja kwa moja wa baiti): mkondo 1, pointi 6, ZOTE kwenye mkondo
 // (hakuna udhibiti wa Bezier -- 'L' ina mistari iliyonyooka tu):
 // (168,0) (168,1409) (359,1409) (359,156) (1071,156) (1071,0).
-n32 main() {
+n32 anza() {
     n32 ok = ttf_pakia("/usr/share/fonts/liberation/LiberationSans-Regular.ttf");
     kama (ok == 0) { rudisha 1; }
 

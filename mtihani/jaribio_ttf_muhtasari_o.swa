@@ -5,7 +5,7 @@ husisha { msingi/ttf.swa }
 // jaribio kali zaidi kuliko 'L'. Thamani zote hapa chini
 // zimethibitishwa kwa mkono (Python, uchunguzi wa moja kwa moja wa
 // baiti za faili halisi) KABLA ya kuandika jaribio hili.
-n32 main() {
+n32 anza() {
     n32 ok = ttf_pakia("/usr/share/fonts/liberation/LiberationSans-Regular.ttf");
     kama (ok == 0) { rudisha 1; }
 

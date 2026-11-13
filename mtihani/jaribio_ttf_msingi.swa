@@ -6,7 +6,7 @@ husisha { msingi/ttf.swa }
 // kwa uchunguzi wa moja kwa moja wa baiti za faili -- angalia ripoti
 // ya kikao hiki kwa maelezo). Thamani zinazotarajiwa: unitsPerEm=2048,
 // indexToLocFormat=1, numGlyphs=2620, A=36, O=50, L=47, B=37.
-n32 main() {
+n32 anza() {
     n32 ok = ttf_pakia("/usr/share/fonts/liberation/LiberationSans-Regular.ttf");
     kama (ok == 0) { rudisha 1; }
 
