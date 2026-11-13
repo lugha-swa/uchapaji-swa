@@ -109,14 +109,14 @@ n32 ttf_pakia(n8* njia) {
     kama (ttf_data == 0) { rudisha 0; }
     n64 n = faili_soma_yote(njia, ttf_data, uwezo);
     kama (n < 12) {
-        andika_stderr("ttf_pakia: haikuweza kusoma faili au ni fupi mno: %s\n", njia, 0, 0, 0, 0, 0);
+        andika_kosa("ttf_pakia: haikuweza kusoma faili au ni fupi mno: %s\n", njia, 0, 0, 0, 0, 0);
         rudisha 0;
     }
     ttf_ukubwa = n;
 
     n64 toleo = soma_u32(ttf_data, 0);
     kama (toleo != 65536) {
-        andika_stderr("ttf_pakia: si TrueType halisi (toleo si 0x00010000): %s\n", njia, 0, 0, 0, 0, 0);
+        andika_kosa("ttf_pakia: si TrueType halisi (toleo si 0x00010000): %s\n", njia, 0, 0, 0, 0, 0);
         rudisha 0;
     }
 
@@ -127,7 +127,7 @@ n32 ttf_pakia(n8* njia) {
     ttf_off_glyf = tafuta_jedwali("glyf");
 
     kama (ttf_off_head < 0 || ttf_off_maxp < 0 || ttf_off_cmap < 0 || ttf_off_loca < 0 || ttf_off_glyf < 0) {
-        andika_stderr("ttf_pakia: jedwali muhimu limekosekana (head/maxp/cmap/loca/glyf)\n", 0, 0, 0, 0, 0, 0);
+        andika_kosa("ttf_pakia: jedwali muhimu limekosekana (head/maxp/cmap/loca/glyf)\n", 0, 0, 0, 0, 0, 0);
         rudisha 0;
     }
 
@@ -161,7 +161,7 @@ n32 ttf_pakia(n8* njia) {
     }
 
     kama (ttf_cmap4_ipo == 0) {
-        andika_stderr("ttf_pakia: hakuna jedwali-ndogo la cmap muundo 4 lililopatikana\n", 0, 0, 0, 0, 0, 0);
+        andika_kosa("ttf_pakia: hakuna jedwali-ndogo la cmap muundo 4 lililopatikana\n", 0, 0, 0, 0, 0, 0);
         rudisha 0;
     }
 
@@ -265,7 +265,7 @@ n32 ttf_pata_muhtasari(n32 glyph_id, n32* out_xs, n32* out_ys, n8* out_kwenye_mk
     }
     n32 idadi_pointi = out_mwisho_mikondo[idadi_mikondo - 1] + 1;
     kama (idadi_pointi >= BENDERA_BAFA_UWEZO) {
-        andika_stderr("ttf_pata_muhtasari: glyph ina pointi nyingi mno kwa bafa ya sasa\n", 0, 0, 0, 0, 0, 0);
+        andika_kosa("ttf_pata_muhtasari: glyph ina pointi nyingi mno kwa bafa ya sasa\n", 0, 0, 0, 0, 0, 0);
         rudisha 0;
     }
 
